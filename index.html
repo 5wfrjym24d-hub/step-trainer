@@ -3,13 +3,13 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Step Trainer v0.9.2 β</title>
+<title>Step Trainer v0.9.3 β</title>
 <style>
 body{margin:0;background:#05070b;color:white;font-family:-apple-system,BlinkMacSystemFont,"Hiragino Sans","Yu Gothic",sans-serif;padding:16px}
 .app{max-width:520px;margin:auto}
 h1{text-align:center;letter-spacing:.08em}
 .card{background:#131a27;border:1px solid #2c3648;border-radius:18px;padding:16px;margin-bottom:12px}
-.center{text-align:center}.label{color:#94a3b8;font-size:14px}.bpm{font-size:76px;font-weight:900;color:#fbbf24}.unit{font-size:24px}
+.center{text-align:center}.label{color:#94a3b8;font-size:14px;line-height:1.5}.bpm{font-size:76px;font-weight:900;color:#fbbf24}.unit{font-size:24px}
 .timer{font-size:96px;font-weight:900;line-height:1}.state{font-size:24px;color:#94a3b8;font-weight:900}
 .grid{display:grid;grid-template-columns:1fr 1fr;gap:10px}.box{background:#1b2332;border-radius:15px;padding:14px;text-align:center}
 .big{font-size:40px;font-weight:900}.foot{font-size:44px;font-weight:900;color:#38bdf8}
@@ -24,21 +24,22 @@ input,textarea,select{width:100%;box-sizing:border-box;background:#0b1020;border
 </style>
 </head>
 <body>
+<audio id="beepAudio" preload="auto" src="data:audio/wav;base64,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"></audio>
 <div class="app">
-<h1>STEP TRAINER v0.9.2 β</h1>
+<h1>STEP TRAINER v0.9.3 β</h1>
 
 <section id="workout">
 <div class="card center">
 <div class="label">現在のテンポ</div>
 <div><span id="bpm" class="bpm">130</span><span class="unit"> BPM</span></div>
 <div id="range" class="label">0:46.8 ～ 6:36.8</div>
-<div id="soundStatus" class="label">メトロノーム：自動ON</div>
+<div id="soundStatus" class="label">音：未有効化</div>
 </div>
 
 <div class="card center">
 <div id="state" class="state">待機中</div>
 <div><span id="remain" class="timer">50</span><span class="unit">秒</span></div>
-<div id="sub" class="label">開始を押してください</div>
+<div id="sub" class="label">最初に「音を有効化」を押してください</div>
 </div>
 
 <div class="grid">
@@ -63,18 +64,20 @@ input,textarea,select{width:100%;box-sizing:border-box;background:#0b1020;border
 <select id="fan"><option>扇風機あり</option><option>扇風機なし</option><option>エアコン併用</option></select>
 </div>
 
+<button id="enableBtn" class="yellow">音を有効化</button>
+<div class="two">
+<button id="testBtn" class="blue">音テスト</button>
+<button id="metroBtn" class="blue">メトロノームON</button>
+</div>
+
 <div class="controls">
 <button id="resetBtn">リセット</button>
 <button id="startBtn" class="primary">開始</button>
 <button id="finishBtn" class="danger">終了</button>
 </div>
 
-<div class="two">
-<button id="testBtn" class="yellow">音テスト</button>
-<button id="metroBtn" class="blue">メトロノームON</button>
-</div>
 <button id="recordsBtn">記録を見る</button>
-<p class="label">音が出ない場合：iPhone消音モード解除、音量UP、Safariで開く、音テストをタップ。</p>
+<p class="label">音が出ない場合：iPhoneの消音モード解除、音量UP、Safariで開く、Bluetooth出力先確認。</p>
 </section>
 
 <section id="recovery" class="hidden">
@@ -116,48 +119,51 @@ const schedule=[
 {start:2146.8,end:2496.8,bpm:120,range:"35:46.8 ～ 41:36.8"}];
 
 let elapsed=0,running=false,timerId=null;
-let audioCtx=null, metroOn=true, metroTimer=null;
-let currentBpm=130;
+let metroOn=true, metroTimer=null, currentBpm=130, soundReady=false;
 
 function $(id){return document.getElementById(id)}
 function getSchedule(t){
- for(let i=0;i<schedule.length;i++){
-  if(t>=schedule[i].start&&t<schedule[i].end)return{item:schedule[i],index:i}
- }
+ for(let i=0;i<schedule.length;i++){ if(t>=schedule[i].start&&t<schedule[i].end)return{item:schedule[i],index:i} }
  return{item:schedule[3],index:3}
 }
 
-function initAudio(){
- if(!audioCtx) audioCtx=new(window.AudioContext||window.webkitAudioContext)();
- if(audioCtx.state==="suspended") audioCtx.resume();
+function vibrate(){ if(navigator.vibrate) navigator.vibrate(25); }
+
+function playBeep(){
+ const a = $("beepAudio").cloneNode(true);
+ a.volume = 1.0;
+ a.play().catch(()=>{ $("soundStatus").textContent="音：再生ブロック中"; });
+ vibrate();
 }
 
-function beep(freq=1400,dur=.075,vol=.18){
- if(!audioCtx)return;
- const o=audioCtx.createOscillator(),g=audioCtx.createGain();
- o.type="square";
- o.frequency.value=freq;
- g.gain.setValueAtTime(vol,audioCtx.currentTime);
- g.gain.exponentialRampToValueAtTime(0.001,audioCtx.currentTime+dur);
- o.connect(g);g.connect(audioCtx.destination);
- o.start();
- o.stop(audioCtx.currentTime+dur);
+async function enableSound(){
+ const a = $("beepAudio");
+ try {
+   a.volume = 1.0;
+   await a.play();
+   a.pause();
+   a.currentTime = 0;
+   soundReady = true;
+   $("soundStatus").textContent="音：有効化済み";
+   playBeep();
+ } catch(e) {
+   $("soundStatus").textContent="音：有効化失敗（Safari/音量/消音確認）";
+ }
 }
 
 function testBeeps(){
- initAudio();
- beep(1400,.09,.22);
- setTimeout(()=>beep(1400,.09,.22),350);
- setTimeout(()=>beep(1400,.09,.22),700);
+ if(!soundReady) enableSound();
+ setTimeout(playBeep,0);
+ setTimeout(playBeep,350);
+ setTimeout(playBeep,700);
 }
 
 function startMetronome(){
- initAudio();
  stopMetronome();
  if(!metroOn||!running)return;
  const intervalMs=60000/currentBpm;
- beep(1400,.075,.18);
- metroTimer=setInterval(()=>beep(1400,.055,.15),intervalMs);
+ playBeep();
+ metroTimer=setInterval(playBeep,intervalMs);
 }
 
 function stopMetronome(){
@@ -182,7 +188,6 @@ function render(){
  $("sub").textContent=isWork?"メトロノームに合わせて昇降":"次のスタート準備";
  $("set").textContent=setIndex+1;
  $("foot").textContent=foot;
- $("soundStatus").textContent=metroOn?"メトロノーム：ON":"メトロノーム：OFF";
  for(let i=0;i<4;i++)$("seg"+i).classList.toggle("active",i===sch.index);
 
  if(currentBpm!==sch.item.bpm){
@@ -195,8 +200,11 @@ function render(){
 
 function tick(){elapsed++;render();}
 
-$("startBtn").onclick=()=>{
- initAudio();
+$("enableBtn").onclick=enableSound;
+$("testBtn").onclick=testBeeps;
+
+$("startBtn").onclick=async()=>{
+ if(!soundReady) await enableSound();
  if(!running){
   running=true;
   $("startBtn").textContent="一時停止";
@@ -212,33 +220,23 @@ $("startBtn").onclick=()=>{
 }
 
 $("resetBtn").onclick=()=>{
- running=false;
- clearInterval(timerId);
- stopMetronome();
- elapsed=0;
- currentBpm=130;
- $("startBtn").textContent="開始";
- render();
+ running=false; clearInterval(timerId); stopMetronome();
+ elapsed=0; currentBpm=130; $("startBtn").textContent="開始"; render();
 }
 
 function finish(){
- running=false;
- clearInterval(timerId);
- stopMetronome();
+ running=false; clearInterval(timerId); stopMetronome();
  $("workout").classList.add("hidden");
  $("recovery").classList.remove("hidden");
  $("records").classList.add("hidden");
 }
 
 $("finishBtn").onclick=finish;
-$("testBtn").onclick=testBeeps;
 
 $("metroBtn").onclick=()=>{
- initAudio();
  metroOn=!metroOn;
  $("metroBtn").textContent=metroOn?"メトロノームOFF":"メトロノームON";
- $("soundStatus").textContent=metroOn?"メトロノーム：ON":"メトロノーム：OFF";
- if(metroOn){testBeeps(); if(running) startMetronome();}
+ if(metroOn){ testBeeps(); if(running) startMetronome(); }
  if(!metroOn) stopMetronome();
 }
 
@@ -260,10 +258,7 @@ $("saveBtn").onclick=()=>{
  alert("保存しました");
 }
 
-$("backBtn").onclick=()=>{
- $("recovery").classList.add("hidden");
- $("workout").classList.remove("hidden");
-}
+$("backBtn").onclick=()=>{ $("recovery").classList.add("hidden"); $("workout").classList.remove("hidden"); }
 
 function showRecords(){
  const data=JSON.parse(localStorage.getItem("stepTrainerRecords")||"[]");
