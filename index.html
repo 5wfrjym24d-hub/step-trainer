@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Step Trainer v0.9.1 β</title>
+<title>Step Trainer v0.9.2 β</title>
 <style>
 body{margin:0;background:#05070b;color:white;font-family:-apple-system,BlinkMacSystemFont,"Hiragino Sans","Yu Gothic",sans-serif;padding:16px}
 .app{max-width:520px;margin:auto}
@@ -16,8 +16,8 @@ h1{text-align:center;letter-spacing:.08em}
 .schedule{display:grid;grid-template-columns:repeat(4,1fr);gap:4px}.seg{background:#223049;padding:9px 3px;border-radius:12px;text-align:center;opacity:.45}
 .seg.active{opacity:1;outline:2px solid #fbbf24}.seg b{font-size:22px;display:block}.seg span{font-size:10px;color:#cbd5e1}
 button{border:0;border-radius:15px;padding:16px 8px;color:white;font-weight:900;font-size:16px;background:#374151;width:100%;margin-top:8px}
-.primary{background:#f97316}.danger{background:#dc2626}.green{background:#16a34a}.blue{background:#0284c7}
-.controls{display:grid;grid-template-columns:1fr 1.4fr 1fr;gap:8px}
+.primary{background:#f97316}.danger{background:#dc2626}.green{background:#16a34a}.blue{background:#0284c7}.yellow{background:#ca8a04}
+.controls{display:grid;grid-template-columns:1fr 1.4fr 1fr;gap:8px}.two{display:grid;grid-template-columns:1fr 1fr;gap:8px}
 input,textarea,select{width:100%;box-sizing:border-box;background:#0b1020;border:1px solid #2c3648;border-radius:12px;color:white;padding:13px;font-size:16px;margin-top:8px}
 .row{display:flex;align-items:center;gap:8px;border-bottom:1px solid #2c3648;padding:12px 0}.row label{flex:1}.row input{width:96px;margin:0;text-align:center}
 .hidden{display:none}.result{font-size:20px;font-weight:900;color:#22c55e;line-height:1.5}.list{font-size:13px;white-space:pre-wrap;max-height:260px;overflow:auto}
@@ -25,13 +25,14 @@ input,textarea,select{width:100%;box-sizing:border-box;background:#0b1020;border
 </head>
 <body>
 <div class="app">
-<h1>STEP TRAINER v0.9.1 β</h1>
+<h1>STEP TRAINER v0.9.2 β</h1>
 
 <section id="workout">
 <div class="card center">
 <div class="label">現在のテンポ</div>
 <div><span id="bpm" class="bpm">130</span><span class="unit"> BPM</span></div>
 <div id="range" class="label">0:46.8 ～ 6:36.8</div>
+<div id="soundStatus" class="label">メトロノーム：自動ON</div>
 </div>
 
 <div class="card center">
@@ -67,8 +68,13 @@ input,textarea,select{width:100%;box-sizing:border-box;background:#0b1020;border
 <button id="startBtn" class="primary">開始</button>
 <button id="finishBtn" class="danger">終了</button>
 </div>
+
+<div class="two">
+<button id="testBtn" class="yellow">音テスト</button>
 <button id="metroBtn" class="blue">メトロノームON</button>
+</div>
 <button id="recordsBtn">記録を見る</button>
+<p class="label">音が出ない場合：iPhone消音モード解除、音量UP、Safariで開く、音テストをタップ。</p>
 </section>
 
 <section id="recovery" class="hidden">
@@ -110,7 +116,7 @@ const schedule=[
 {start:2146.8,end:2496.8,bpm:120,range:"35:46.8 ～ 41:36.8"}];
 
 let elapsed=0,running=false,timerId=null;
-let audioCtx=null, metroOn=false, metroTimer=null;
+let audioCtx=null, metroOn=true, metroTimer=null;
 let currentBpm=130;
 
 function $(id){return document.getElementById(id)}
@@ -126,15 +132,23 @@ function initAudio(){
  if(audioCtx.state==="suspended") audioCtx.resume();
 }
 
-function beep(freq=980,dur=.045,vol=.09){
+function beep(freq=1400,dur=.075,vol=.18){
  if(!audioCtx)return;
  const o=audioCtx.createOscillator(),g=audioCtx.createGain();
  o.type="square";
  o.frequency.value=freq;
- g.gain.value=vol;
+ g.gain.setValueAtTime(vol,audioCtx.currentTime);
+ g.gain.exponentialRampToValueAtTime(0.001,audioCtx.currentTime+dur);
  o.connect(g);g.connect(audioCtx.destination);
  o.start();
  o.stop(audioCtx.currentTime+dur);
+}
+
+function testBeeps(){
+ initAudio();
+ beep(1400,.09,.22);
+ setTimeout(()=>beep(1400,.09,.22),350);
+ setTimeout(()=>beep(1400,.09,.22),700);
 }
 
 function startMetronome(){
@@ -142,8 +156,8 @@ function startMetronome(){
  stopMetronome();
  if(!metroOn||!running)return;
  const intervalMs=60000/currentBpm;
- beep(1120,.045,.09);
- metroTimer=setInterval(()=>beep(1120,.035,.075),intervalMs);
+ beep(1400,.075,.18);
+ metroTimer=setInterval(()=>beep(1400,.055,.15),intervalMs);
 }
 
 function stopMetronome(){
@@ -168,11 +182,12 @@ function render(){
  $("sub").textContent=isWork?"メトロノームに合わせて昇降":"次のスタート準備";
  $("set").textContent=setIndex+1;
  $("foot").textContent=foot;
+ $("soundStatus").textContent=metroOn?"メトロノーム：ON":"メトロノーム：OFF";
  for(let i=0;i<4;i++)$("seg"+i).classList.toggle("active",i===sch.index);
 
  if(currentBpm!==sch.item.bpm){
    currentBpm=sch.item.bpm;
-   if(running&&metroOn) startMetronome();
+   if(running&&metroOn&&isWork) startMetronome();
  }
  if(!isWork && metroTimer) stopMetronome();
  if(isWork && running && metroOn && !metroTimer) startMetronome();
@@ -216,12 +231,14 @@ function finish(){
 }
 
 $("finishBtn").onclick=finish;
+$("testBtn").onclick=testBeeps;
 
 $("metroBtn").onclick=()=>{
  initAudio();
  metroOn=!metroOn;
  $("metroBtn").textContent=metroOn?"メトロノームOFF":"メトロノームON";
- if(metroOn && running) startMetronome();
+ $("soundStatus").textContent=metroOn?"メトロノーム：ON":"メトロノーム：OFF";
+ if(metroOn){testBeeps(); if(running) startMetronome();}
  if(!metroOn) stopMetronome();
 }
 
