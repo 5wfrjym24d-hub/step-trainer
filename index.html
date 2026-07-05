@@ -1,0 +1,146 @@
+<!doctype html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Step Trainer v0.9 β</title>
+<style>
+body{margin:0;background:#05070b;color:white;font-family:-apple-system,BlinkMacSystemFont,"Hiragino Sans","Yu Gothic",sans-serif;padding:16px}
+.app{max-width:520px;margin:auto}
+h1{text-align:center;letter-spacing:.08em}
+.card{background:#131a27;border:1px solid #2c3648;border-radius:18px;padding:16px;margin-bottom:12px}
+.center{text-align:center}.label{color:#94a3b8;font-size:14px}.bpm{font-size:76px;font-weight:900;color:#fbbf24}.unit{font-size:24px}
+.timer{font-size:96px;font-weight:900;line-height:1}.state{font-size:24px;color:#94a3b8;font-weight:900}
+.grid{display:grid;grid-template-columns:1fr 1fr;gap:10px}.box{background:#1b2332;border-radius:15px;padding:14px;text-align:center}
+.big{font-size:40px;font-weight:900}.foot{font-size:44px;font-weight:900;color:#38bdf8}
+.schedule{display:grid;grid-template-columns:repeat(4,1fr);gap:4px}.seg{background:#223049;padding:9px 3px;border-radius:12px;text-align:center;opacity:.45}
+.seg.active{opacity:1;outline:2px solid #fbbf24}.seg b{font-size:22px;display:block}.seg span{font-size:10px;color:#cbd5e1}
+button{border:0;border-radius:15px;padding:16px 8px;color:white;font-weight:900;font-size:16px;background:#374151;width:100%;margin-top:8px}
+.primary{background:#f97316}.danger{background:#dc2626}.green{background:#16a34a}.blue{background:#0284c7}
+.controls{display:grid;grid-template-columns:1fr 1.4fr 1fr;gap:8px}
+input,textarea,select{width:100%;box-sizing:border-box;background:#0b1020;border:1px solid #2c3648;border-radius:12px;color:white;padding:13px;font-size:16px;margin-top:8px}
+.row{display:flex;align-items:center;gap:8px;border-bottom:1px solid #2c3648;padding:12px 0}.row label{flex:1}.row input{width:96px;margin:0;text-align:center}
+.hidden{display:none}.result{font-size:20px;font-weight:900;color:#22c55e;line-height:1.5}.list{font-size:13px;white-space:pre-wrap;max-height:260px;overflow:auto}
+</style>
+</head>
+<body>
+<div class="app">
+<h1>STEP TRAINER v0.9 β</h1>
+
+<section id="workout">
+<div class="card center">
+<div class="label">現在のテンポ</div>
+<div><span id="bpm" class="bpm">130</span><span class="unit"> BPM</span></div>
+<div id="range" class="label">0:46.8 ～ 6:36.8</div>
+</div>
+
+<div class="card center">
+<div id="state" class="state">待機中</div>
+<div><span id="remain" class="timer">50</span><span class="unit">秒</span></div>
+<div id="sub" class="label">開始を押してください</div>
+</div>
+
+<div class="grid">
+<div class="box"><div class="label">セット</div><div class="big"><span id="set">0</span>/30</div></div>
+<div class="box"><div class="label">スタート足</div><div id="foot" class="foot">右足</div></div>
+</div>
+
+<div class="card">
+<div class="label">テンポスケジュール</div>
+<div class="schedule">
+<div id="seg0" class="seg active"><b>130</b><span>0:46.8</span></div>
+<div id="seg1" class="seg"><b>135</b><span>6:36.8</span></div>
+<div id="seg2" class="seg"><b>140</b><span>29:56.8</span></div>
+<div id="seg3" class="seg"><b>120</b><span>35:46.8</span></div>
+</div>
+</div>
+
+<div class="card">
+<div class="label">環境メモ</div>
+<input id="temp" placeholder="室温 ℃">
+<input id="humid" placeholder="湿度 %">
+<select id="fan"><option>扇風機あり</option><option>扇風機なし</option><option>エアコン併用</option></select>
+</div>
+
+<div class="controls">
+<button id="resetBtn">リセット</button>
+<button id="startBtn" class="primary">開始</button>
+<button id="finishBtn" class="danger">終了</button>
+</div>
+<button id="soundBtn" class="blue">音ON</button>
+<button id="recordsBtn">記録を見る</button>
+</section>
+
+<section id="recovery" class="hidden">
+<div class="card center"><div class="result">トレーニング終了</div><div class="label">回復心拍を入力してください</div></div>
+<div class="card">
+<div class="row"><label>終了時心拍</label><input id="hr0" inputmode="numeric">bpm</div>
+<div class="row"><label>30秒後</label><input id="hr30" inputmode="numeric">bpm</div>
+<div class="row"><label>60秒後</label><input id="hr60" inputmode="numeric">bpm</div>
+<div class="row"><label>120秒後</label><input id="hr120" inputmode="numeric">bpm</div>
+<button id="calcBtn" class="green">回復心拍を計算</button>
+</div>
+<div class="card">
+<select id="fatigue"><option value="">主観的疲労</option><option value="0">疲労 0</option><option value="1">疲労 1</option><option value="2">疲労 2</option><option value="3">疲労 3</option><option value="4">疲労 4</option><option value="5">疲労 5</option></select>
+<select id="achilles"><option value="">アキレス腱</option><option value="0">痛み 0</option><option value="1">痛み 1</option><option value="2">痛み 2</option><option value="3">痛み 3</option><option value="4">痛み 4</option><option value="5">痛み 5</option></select>
+<textarea id="memo" rows="3" placeholder="メモ"></textarea>
+<div id="result" class="result">未計算</div>
+<button id="saveBtn" class="green">記録を保存</button>
+<button id="backBtn">戻る</button>
+</div>
+</section>
+
+<section id="records" class="hidden">
+<div class="card">
+<div class="result">保存記録</div>
+<div id="recordList" class="list">記録はまだありません。</div>
+<button id="exportBtn" class="blue">CSVを表示</button>
+<button id="clearBtn" class="danger">記録を全削除</button>
+<button id="recordsBackBtn">戻る</button>
+</div>
+</section>
+</div>
+
+<script>
+const totalSets=30,workSec=50,restSec=10,startOffset=46.8;
+const schedule=[
+{start:46.8,end:396.8,bpm:130,range:"0:46.8 ～ 6:36.8"},
+{start:396.8,end:1796.8,bpm:135,range:"6:36.8 ～ 29:56.8"},
+{start:1796.8,end:2146.8,bpm:140,range:"29:56.8 ～ 35:46.8"},
+{start:2146.8,end:2496.8,bpm:120,range:"35:46.8 ～ 41:36.8"}];
+let elapsed=0,running=false,timerId=null,audioCtx=null,soundOn=false,lastState=null,lastBpm=null;
+function $(id){return document.getElementById(id)}
+function getSchedule(t){for(let i=0;i<schedule.length;i++){if(t>=schedule[i].start&&t<schedule[i].end)return{item:schedule[i],index:i}}return{item:schedule[3],index:3}}
+function initAudio(){if(!audioCtx)audioCtx=new(window.AudioContext||window.webkitAudioContext)();if(audioCtx.state==="suspended")audioCtx.resume()}
+function beep(freq=880,dur=.05,vol=.08){if(!soundOn||!audioCtx)return;const o=audioCtx.createOscillator(),g=audioCtx.createGain();o.frequency.value=freq;g.gain.value=vol;o.connect(g);g.connect(audioCtx.destination);o.start();o.stop(audioCtx.currentTime+dur)}
+function speak(text){if(!soundOn||!("speechSynthesis"in window))return;const u=new SpeechSynthesisUtterance(text);u.lang="ja-JP";u.rate=1.05;speechSynthesis.cancel();speechSynthesis.speak(u)}
+function render(){
+ const total=totalSets*(workSec+restSec); if(elapsed>=total){finish();return}
+ const setIndex=Math.floor(elapsed/(workSec+restSec)); const inSet=elapsed%(workSec+restSec);
+ const isWork=inSet<workSec; const remain=isWork?workSec-inSet:workSec+restSec-inSet;
+ const foot=setIndex%2===0?"右足":"左足"; const phaseTime=elapsed+startOffset; const sch=getSchedule(phaseTime);
+ $("bpm").textContent=sch.item.bpm;$("range").textContent=sch.item.range;$("state").textContent=isWork?"運動中":"休憩中";
+ $("remain").textContent=remain;$("sub").textContent=isWork?"休憩まで":"次のスタート準備";$("set").textContent=setIndex+1;$("foot").textContent=foot;
+ for(let i=0;i<4;i++)$("seg"+i).classList.toggle("active",i===sch.index);
+ if(running&&soundOn){
+  if(lastBpm!==sch.item.bpm){speak(sch.item.bpm+" BPM");beep(1200,.08,.1);lastBpm=sch.item.bpm}
+  if(lastState!==isWork){if(isWork){speak(foot+"スタート");beep(980)}else{speak("休憩");beep(520)}lastState=isWork}
+  if(remain<=3&&remain>0)beep(760,.04,.06)
+ }}
+function tick(){elapsed++;render()}
+$("startBtn").onclick=()=>{if(!running){initAudio();running=true;$("startBtn").textContent="一時停止";timerId=setInterval(tick,1000);render();speak("開始します")}else{running=false;clearInterval(timerId);$("startBtn").textContent="再開";speak("一時停止")}}
+$("resetBtn").onclick=()=>{running=false;clearInterval(timerId);elapsed=0;lastState=null;lastBpm=null;$("startBtn").textContent="開始";render()}
+function finish(){running=false;clearInterval(timerId);$("workout").classList.add("hidden");$("recovery").classList.remove("hidden");$("records").classList.add("hidden");speak("終了です")}
+$("finishBtn").onclick=finish
+$("soundBtn").onclick=()=>{initAudio();soundOn=!soundOn;$("soundBtn").textContent=soundOn?"音OFF":"音ON";if(soundOn){beep();speak("音をオンにしました")}}
+$("calcBtn").onclick=()=>{const h0=Number($("hr0").value),h30=Number($("hr30").value),h60=Number($("hr60").value),h120=Number($("hr120").value);if(!h0){$("result").textContent="終了時心拍を入力してください";return}const a=[];if(h30)a.push("30秒："+(h0-h30)+" bpm低下");if(h60)a.push("60秒："+(h0-h60)+" bpm低下");if(h120)a.push("120秒："+(h0-h120)+" bpm低下");$("result").textContent=a.length?a.join(" / "):"30・60・120秒後を入力してください"}
+$("saveBtn").onclick=()=>{const rec={date:new Date().toLocaleString("ja-JP"),temp:$("temp").value,humid:$("humid").value,fan:$("fan").value,hr0:$("hr0").value,hr30:$("hr30").value,hr60:$("hr60").value,hr120:$("hr120").value,fatigue:$("fatigue").value,achilles:$("achilles").value,memo:$("memo").value};const data=JSON.parse(localStorage.getItem("stepTrainerRecords")||"[]");data.push(rec);localStorage.setItem("stepTrainerRecords",JSON.stringify(data));alert("保存しました")}
+$("backBtn").onclick=()=>{$("recovery").classList.add("hidden");$("workout").classList.remove("hidden")}
+function showRecords(){const data=JSON.parse(localStorage.getItem("stepTrainerRecords")||"[]");$("recordList").textContent=data.length?data.map((r,i)=>`${i+1}. ${r.date}\n室温:${r.temp}℃ 湿度:${r.humid}% ${r.fan}\n心拍 終了:${r.hr0} 30秒:${r.hr30} 60秒:${r.hr60} 120秒:${r.hr120}\n疲労:${r.fatigue} アキレス腱:${r.achilles}\nメモ:${r.memo}`).join("\n\n"):"記録はまだありません。";$("workout").classList.add("hidden");$("recovery").classList.add("hidden");$("records").classList.remove("hidden")}
+$("recordsBtn").onclick=showRecords;$("recordsBackBtn").onclick=()=>{$("records").classList.add("hidden");$("workout").classList.remove("hidden")}
+$("clearBtn").onclick=()=>{if(confirm("保存記録をすべて削除しますか？")){localStorage.removeItem("stepTrainerRecords");showRecords()}}
+$("exportBtn").onclick=()=>{const data=JSON.parse(localStorage.getItem("stepTrainerRecords")||"[]");const h=["date","temp","humid","fan","hr0","hr30","hr60","hr120","fatigue","achilles","memo"];$("recordList").textContent=[h.join(",")].concat(data.map(r=>h.map(k=>`"${String(r[k]||"").replaceAll('"','""')}"`).join(","))).join("\n")}
+render()
+</script>
+</body>
+</html>
