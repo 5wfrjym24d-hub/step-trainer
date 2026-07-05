@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Step Trainer v0.9 β</title>
+<title>Step Trainer v0.9.1 β</title>
 <style>
 body{margin:0;background:#05070b;color:white;font-family:-apple-system,BlinkMacSystemFont,"Hiragino Sans","Yu Gothic",sans-serif;padding:16px}
 .app{max-width:520px;margin:auto}
@@ -25,7 +25,7 @@ input,textarea,select{width:100%;box-sizing:border-box;background:#0b1020;border
 </head>
 <body>
 <div class="app">
-<h1>STEP TRAINER v0.9 β</h1>
+<h1>STEP TRAINER v0.9.1 β</h1>
 
 <section id="workout">
 <div class="card center">
@@ -67,7 +67,7 @@ input,textarea,select{width:100%;box-sizing:border-box;background:#0b1020;border
 <button id="startBtn" class="primary">開始</button>
 <button id="finishBtn" class="danger">終了</button>
 </div>
-<button id="soundBtn" class="blue">音ON</button>
+<button id="metroBtn" class="blue">メトロノームON</button>
 <button id="recordsBtn">記録を見る</button>
 </section>
 
@@ -108,38 +108,162 @@ const schedule=[
 {start:396.8,end:1796.8,bpm:135,range:"6:36.8 ～ 29:56.8"},
 {start:1796.8,end:2146.8,bpm:140,range:"29:56.8 ～ 35:46.8"},
 {start:2146.8,end:2496.8,bpm:120,range:"35:46.8 ～ 41:36.8"}];
-let elapsed=0,running=false,timerId=null,audioCtx=null,soundOn=false,lastState=null,lastBpm=null;
+
+let elapsed=0,running=false,timerId=null;
+let audioCtx=null, metroOn=false, metroTimer=null;
+let currentBpm=130;
+
 function $(id){return document.getElementById(id)}
-function getSchedule(t){for(let i=0;i<schedule.length;i++){if(t>=schedule[i].start&&t<schedule[i].end)return{item:schedule[i],index:i}}return{item:schedule[3],index:3}}
-function initAudio(){if(!audioCtx)audioCtx=new(window.AudioContext||window.webkitAudioContext)();if(audioCtx.state==="suspended")audioCtx.resume()}
-function beep(freq=880,dur=.05,vol=.08){if(!soundOn||!audioCtx)return;const o=audioCtx.createOscillator(),g=audioCtx.createGain();o.frequency.value=freq;g.gain.value=vol;o.connect(g);g.connect(audioCtx.destination);o.start();o.stop(audioCtx.currentTime+dur)}
-function speak(text){if(!soundOn||!("speechSynthesis"in window))return;const u=new SpeechSynthesisUtterance(text);u.lang="ja-JP";u.rate=1.05;speechSynthesis.cancel();speechSynthesis.speak(u)}
+function getSchedule(t){
+ for(let i=0;i<schedule.length;i++){
+  if(t>=schedule[i].start&&t<schedule[i].end)return{item:schedule[i],index:i}
+ }
+ return{item:schedule[3],index:3}
+}
+
+function initAudio(){
+ if(!audioCtx) audioCtx=new(window.AudioContext||window.webkitAudioContext)();
+ if(audioCtx.state==="suspended") audioCtx.resume();
+}
+
+function beep(freq=980,dur=.045,vol=.09){
+ if(!audioCtx)return;
+ const o=audioCtx.createOscillator(),g=audioCtx.createGain();
+ o.type="square";
+ o.frequency.value=freq;
+ g.gain.value=vol;
+ o.connect(g);g.connect(audioCtx.destination);
+ o.start();
+ o.stop(audioCtx.currentTime+dur);
+}
+
+function startMetronome(){
+ initAudio();
+ stopMetronome();
+ if(!metroOn||!running)return;
+ const intervalMs=60000/currentBpm;
+ beep(1120,.045,.09);
+ metroTimer=setInterval(()=>beep(1120,.035,.075),intervalMs);
+}
+
+function stopMetronome(){
+ if(metroTimer){clearInterval(metroTimer);metroTimer=null;}
+}
+
 function render(){
- const total=totalSets*(workSec+restSec); if(elapsed>=total){finish();return}
- const setIndex=Math.floor(elapsed/(workSec+restSec)); const inSet=elapsed%(workSec+restSec);
- const isWork=inSet<workSec; const remain=isWork?workSec-inSet:workSec+restSec-inSet;
- const foot=setIndex%2===0?"右足":"左足"; const phaseTime=elapsed+startOffset; const sch=getSchedule(phaseTime);
- $("bpm").textContent=sch.item.bpm;$("range").textContent=sch.item.range;$("state").textContent=isWork?"運動中":"休憩中";
- $("remain").textContent=remain;$("sub").textContent=isWork?"休憩まで":"次のスタート準備";$("set").textContent=setIndex+1;$("foot").textContent=foot;
+ const total=totalSets*(workSec+restSec);
+ if(elapsed>=total){finish();return}
+ const setIndex=Math.floor(elapsed/(workSec+restSec));
+ const inSet=elapsed%(workSec+restSec);
+ const isWork=inSet<workSec;
+ const remain=isWork?workSec-inSet:workSec+restSec-inSet;
+ const foot=setIndex%2===0?"右足":"左足";
+ const phaseTime=elapsed+startOffset;
+ const sch=getSchedule(phaseTime);
+
+ $("bpm").textContent=sch.item.bpm;
+ $("range").textContent=sch.item.range;
+ $("state").textContent=isWork?"運動中":"休憩中";
+ $("remain").textContent=remain;
+ $("sub").textContent=isWork?"メトロノームに合わせて昇降":"次のスタート準備";
+ $("set").textContent=setIndex+1;
+ $("foot").textContent=foot;
  for(let i=0;i<4;i++)$("seg"+i).classList.toggle("active",i===sch.index);
- if(running&&soundOn){
-  if(lastBpm!==sch.item.bpm){speak(sch.item.bpm+" BPM");beep(1200,.08,.1);lastBpm=sch.item.bpm}
-  if(lastState!==isWork){if(isWork){speak(foot+"スタート");beep(980)}else{speak("休憩");beep(520)}lastState=isWork}
-  if(remain<=3&&remain>0)beep(760,.04,.06)
- }}
-function tick(){elapsed++;render()}
-$("startBtn").onclick=()=>{if(!running){initAudio();running=true;$("startBtn").textContent="一時停止";timerId=setInterval(tick,1000);render();speak("開始します")}else{running=false;clearInterval(timerId);$("startBtn").textContent="再開";speak("一時停止")}}
-$("resetBtn").onclick=()=>{running=false;clearInterval(timerId);elapsed=0;lastState=null;lastBpm=null;$("startBtn").textContent="開始";render()}
-function finish(){running=false;clearInterval(timerId);$("workout").classList.add("hidden");$("recovery").classList.remove("hidden");$("records").classList.add("hidden");speak("終了です")}
-$("finishBtn").onclick=finish
-$("soundBtn").onclick=()=>{initAudio();soundOn=!soundOn;$("soundBtn").textContent=soundOn?"音OFF":"音ON";if(soundOn){beep();speak("音をオンにしました")}}
-$("calcBtn").onclick=()=>{const h0=Number($("hr0").value),h30=Number($("hr30").value),h60=Number($("hr60").value),h120=Number($("hr120").value);if(!h0){$("result").textContent="終了時心拍を入力してください";return}const a=[];if(h30)a.push("30秒："+(h0-h30)+" bpm低下");if(h60)a.push("60秒："+(h0-h60)+" bpm低下");if(h120)a.push("120秒："+(h0-h120)+" bpm低下");$("result").textContent=a.length?a.join(" / "):"30・60・120秒後を入力してください"}
-$("saveBtn").onclick=()=>{const rec={date:new Date().toLocaleString("ja-JP"),temp:$("temp").value,humid:$("humid").value,fan:$("fan").value,hr0:$("hr0").value,hr30:$("hr30").value,hr60:$("hr60").value,hr120:$("hr120").value,fatigue:$("fatigue").value,achilles:$("achilles").value,memo:$("memo").value};const data=JSON.parse(localStorage.getItem("stepTrainerRecords")||"[]");data.push(rec);localStorage.setItem("stepTrainerRecords",JSON.stringify(data));alert("保存しました")}
-$("backBtn").onclick=()=>{$("recovery").classList.add("hidden");$("workout").classList.remove("hidden")}
-function showRecords(){const data=JSON.parse(localStorage.getItem("stepTrainerRecords")||"[]");$("recordList").textContent=data.length?data.map((r,i)=>`${i+1}. ${r.date}\n室温:${r.temp}℃ 湿度:${r.humid}% ${r.fan}\n心拍 終了:${r.hr0} 30秒:${r.hr30} 60秒:${r.hr60} 120秒:${r.hr120}\n疲労:${r.fatigue} アキレス腱:${r.achilles}\nメモ:${r.memo}`).join("\n\n"):"記録はまだありません。";$("workout").classList.add("hidden");$("recovery").classList.add("hidden");$("records").classList.remove("hidden")}
-$("recordsBtn").onclick=showRecords;$("recordsBackBtn").onclick=()=>{$("records").classList.add("hidden");$("workout").classList.remove("hidden")}
+
+ if(currentBpm!==sch.item.bpm){
+   currentBpm=sch.item.bpm;
+   if(running&&metroOn) startMetronome();
+ }
+ if(!isWork && metroTimer) stopMetronome();
+ if(isWork && running && metroOn && !metroTimer) startMetronome();
+}
+
+function tick(){elapsed++;render();}
+
+$("startBtn").onclick=()=>{
+ initAudio();
+ if(!running){
+  running=true;
+  $("startBtn").textContent="一時停止";
+  timerId=setInterval(tick,1000);
+  render();
+  if(metroOn) startMetronome();
+ }else{
+  running=false;
+  clearInterval(timerId);
+  stopMetronome();
+  $("startBtn").textContent="再開";
+ }
+}
+
+$("resetBtn").onclick=()=>{
+ running=false;
+ clearInterval(timerId);
+ stopMetronome();
+ elapsed=0;
+ currentBpm=130;
+ $("startBtn").textContent="開始";
+ render();
+}
+
+function finish(){
+ running=false;
+ clearInterval(timerId);
+ stopMetronome();
+ $("workout").classList.add("hidden");
+ $("recovery").classList.remove("hidden");
+ $("records").classList.add("hidden");
+}
+
+$("finishBtn").onclick=finish;
+
+$("metroBtn").onclick=()=>{
+ initAudio();
+ metroOn=!metroOn;
+ $("metroBtn").textContent=metroOn?"メトロノームOFF":"メトロノームON";
+ if(metroOn && running) startMetronome();
+ if(!metroOn) stopMetronome();
+}
+
+$("calcBtn").onclick=()=>{
+ const h0=Number($("hr0").value),h30=Number($("hr30").value),h60=Number($("hr60").value),h120=Number($("hr120").value);
+ if(!h0){$("result").textContent="終了時心拍を入力してください";return}
+ const a=[];
+ if(h30)a.push("30秒："+(h0-h30)+" bpm低下");
+ if(h60)a.push("60秒："+(h0-h60)+" bpm低下");
+ if(h120)a.push("120秒："+(h0-h120)+" bpm低下");
+ $("result").textContent=a.length?a.join(" / "):"30・60・120秒後を入力してください";
+}
+
+$("saveBtn").onclick=()=>{
+ const rec={date:new Date().toLocaleString("ja-JP"),temp:$("temp").value,humid:$("humid").value,fan:$("fan").value,hr0:$("hr0").value,hr30:$("hr30").value,hr60:$("hr60").value,hr120:$("hr120").value,fatigue:$("fatigue").value,achilles:$("achilles").value,memo:$("memo").value};
+ const data=JSON.parse(localStorage.getItem("stepTrainerRecords")||"[]");
+ data.push(rec);
+ localStorage.setItem("stepTrainerRecords",JSON.stringify(data));
+ alert("保存しました");
+}
+
+$("backBtn").onclick=()=>{
+ $("recovery").classList.add("hidden");
+ $("workout").classList.remove("hidden");
+}
+
+function showRecords(){
+ const data=JSON.parse(localStorage.getItem("stepTrainerRecords")||"[]");
+ $("recordList").textContent=data.length?data.map((r,i)=>`${i+1}. ${r.date}\n室温:${r.temp}℃ 湿度:${r.humid}% ${r.fan}\n心拍 終了:${r.hr0} 30秒:${r.hr30} 60秒:${r.hr60} 120秒:${r.hr120}\n疲労:${r.fatigue} アキレス腱:${r.achilles}\nメモ:${r.memo}`).join("\n\n"):"記録はまだありません。";
+ $("workout").classList.add("hidden");
+ $("recovery").classList.add("hidden");
+ $("records").classList.remove("hidden");
+}
+
+$("recordsBtn").onclick=showRecords;
+$("recordsBackBtn").onclick=()=>{$("records").classList.add("hidden");$("workout").classList.remove("hidden")}
 $("clearBtn").onclick=()=>{if(confirm("保存記録をすべて削除しますか？")){localStorage.removeItem("stepTrainerRecords");showRecords()}}
-$("exportBtn").onclick=()=>{const data=JSON.parse(localStorage.getItem("stepTrainerRecords")||"[]");const h=["date","temp","humid","fan","hr0","hr30","hr60","hr120","fatigue","achilles","memo"];$("recordList").textContent=[h.join(",")].concat(data.map(r=>h.map(k=>`"${String(r[k]||"").replaceAll('"','""')}"`).join(","))).join("\n")}
+$("exportBtn").onclick=()=>{
+ const data=JSON.parse(localStorage.getItem("stepTrainerRecords")||"[]");
+ const h=["date","temp","humid","fan","hr0","hr30","hr60","hr120","fatigue","achilles","memo"];
+ $("recordList").textContent=[h.join(",")].concat(data.map(r=>h.map(k=>`"${String(r[k]||"").replaceAll('"','""')}"`).join(","))).join("\n")
+}
 render()
 </script>
 </body>
